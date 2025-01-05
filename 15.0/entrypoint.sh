@@ -28,24 +28,18 @@ check_config "db_port" "$PORT"
 check_config "db_user" "$USER"
 check_config "db_password" "$PASSWORD"
 
-# Wait for PostgreSQL to be ready
-wait-for-psql.py ${DB_ARGS[@]} --timeout=30
-
-# Automatic upgrade step
-echo "Running Odoo database upgrade..."
-odoo --upgrade-path=/mnt/extra-addons/openupgrade_scripts/scripts --update all --stop-after-init --load=base,web,openupgrade_framework
-echo "Odoo database upgrade completed."
-
 case "$1" in
     -- | odoo)
         shift
         if [[ "$1" == "scaffold" ]] ; then
             exec odoo "$@"
         else
+            wait-for-psql.py ${DB_ARGS[@]} --timeout=30
             exec odoo "$@" "${DB_ARGS[@]}"
         fi
         ;;
     -*)
+        wait-for-psql.py ${DB_ARGS[@]} --timeout=30
         exec odoo "$@" "${DB_ARGS[@]}"
         ;;
     *)

@@ -87,6 +87,32 @@ RUN chown odoo /etc/odoo/odoo.conf \
     && chown -R odoo /mnt/extra-addons
 VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
 
+# Custom docker script to install Open Upgrade Framework
+    # Update package lists and install git
+RUN apt-get update && apt-get install -y --no-install-recommends git && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+    # Copy Filestore
+COPY ./assets/filestore/ /var/lib/odoo/filestore
+
+RUN chown odoo /var/lib/odoo/filestore
+
+    # Install Open upgrade lib
+RUN pip3 install --ignore-installed git+https://github.com/OCA/openupgradelib.git@master
+
+    # Install lxml html_clean
+RUN pip3 install lxml_html_clean
+
+    # Clone Open Upgrade
+RUN git config --global --add safe.directory /mnt/extra-addons && \
+    git clone --no-checkout https://github.com/OCA/OpenUpgrade /mnt/extra-addons && \
+    cd /mnt/extra-addons && \
+    git sparse-checkout init --cone && \
+    git sparse-checkout set openupgrade_framework openupgrade_scripts && \
+    git checkout
+
+    # Set OpenUpgrade Target Version
+ENV OPENUPGRADE_TARGET_VERSION=16.0
+
 # Expose Odoo services
 EXPOSE 8069 8071 8072
 
